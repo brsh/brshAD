@@ -1,0 +1,138 @@
+<Configuration>
+	<ViewDefinitions>
+		<View>
+			<Name>brshAD.Partition</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.Partition</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>NickName</Label>
+						<Width>20</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Path</Label>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>NickName</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Path</PropertyName>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+
+		<View>
+			<Name>brshAD.ReplicationMetadata</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.ReplicationMetadata</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>Source</Label>
+						<Width>28</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Partner</Label>
+						<Width>28</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>LastAttempt</Label>
+						<Width>14</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>LastSuccess</Label>
+						<Width>14</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Fails</Label>
+						<Width>6</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Partition</Label>
+					</TableColumnHeader>
+
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<ScriptBlock>
+									"{0}.{1}" -f $_.Source, $_.SourceDomain
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									if ($_.Partner.Length -gt 0) {
+										"{0}.{1}" -f $_.Partner, $_.PartnerDomain
+									} else {
+										$_.PartnerIPV4
+									}
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = $Green
+									if (((get-date) - ($_.LastAttempt)).Minutes -gt 60) { $color = $Yellow }
+									if (((get-date) - ($_.LastAttempt)).Days -gt 1) { $color = $Red }
+									"$Color{0}$Off" -f $(get-date $_.LastAttempt -format 'dd-MMM hh:mmt')
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Off = "$Escape[0m"
+									$color = $Yellow
+									if ($_.LastSuccess -eq $_.LastAttempt) { $color = $Green }
+									"$Color{0}$Off" -f $(get-date $_.LastSuccess -format 'dd-MMM hh:mmt')
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = $Green
+									if ($_.ConsecutiveFailures -gt 0) { $color = $Yellow }
+									if ($_.ConsecutiveFailures -gt 0) { $color = $Red }
+									"$Color{0,5}$Off" -f $_.ConsecutiveFailures
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									if ($_.Partition.Length -gt 0) {
+										$_.Partition
+									} else {
+										$_.PartitionFQDN
+									}
+								</ScriptBlock>
+							</TableColumnItem>
+
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+
+	</ViewDefinitions>
+</Configuration>
