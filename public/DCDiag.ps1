@@ -94,12 +94,16 @@ function Invoke-adDCDiag {
 				"*was found*" { write-host ($line -Split 'was found')[0] -NoNewline; write-host 'was found' -ForegroundColor Green -NoNewline; write-host ($line -Split 'was found')[-1]; break }
 				"*was not found*" { write-host ($line -Split 'was not found')[0] -NoNewline; write-host 'was not found' -ForegroundColor Red -NoNewline; write-host ($line -Split 'was not found')[-1]; break }
 				"*is advertising*" { write-host ($line -Split 'is advertising')[0] -NoNewline; write-host 'is advertising' -ForegroundColor Green -NoNewline; write-host ($line -Split 'is advertising')[-1]; break }
+				"*is not advertising*" { write-host ($line -Split 'is not advertising')[0] -NoNewline; write-host 'is not advertising' -ForegroundColor Yellow -NoNewline; write-host ($line -Split 'is not advertising')[-1]; break }
 				"*are correct*" { write-host $line -ForegroundColor Green; break }
+				"*Unable to verify the convergence*" { write-host $line -ForegroundColor Yellow; break }
 				"Warning:*" { write-host $line -ForegroundColor Yellow; break }
 				"Error:*" { write-host $line -ForegroundColor Red; break }
 				"*failed*" { write-host $line -ForegroundColor Red; break }
 				"*failure*" { write-host $line -ForegroundColor Red; break }
 				"*broken*" { write-host $line -ForegroundColor Red; break }
+				"*can't get changes*" { write-host $line -ForegroundColor Red; break }
+				"*is disconnected*" { write-host $line -ForegroundColor Red; break }
 				"DNS delegation for the domain*is operational*" { write-host ($line -Split 'is operational')[0] -NoNewline; write-host 'is operational' -ForegroundColor Green -NoNewline; write-host ($line -Split 'is operational')[-1]; break }
 				"Name resolution is functional*is registered*" { write-host ($line -Split 'is functional')[0] -NoNewline; write-host 'is functional' -ForegroundColor Green -NoNewline; write-host ($line -Split 'is functional')[-1]; break }
 				"Name resolution is not functional*" { write-host ($line -Split 'is not functional')[0] -NoNewline; write-host 'is not functional' -ForegroundColor Red -NoNewline; write-host ($line -Split 'is not functional')[-1]; break }
