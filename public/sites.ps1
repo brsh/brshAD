@@ -48,3 +48,42 @@ function Get-adSubnetsWithoutSite {
 		Write-Status -Message "Could not find file:", $IPLog -Type Error, Warning -Level 1
 	}
 }
+
+function Get-adSiteInformation {
+	<#
+	.SYNOPSIS
+	Pulls Site Information like name, IPs...
+
+	.DESCRIPTION
+	A quick format of various info about Sites
+
+	.EXAMPLE
+	Get-adSiteInformation
+	#>
+
+	$CurForestName = $env:USERDNSDOMAIN
+	$a = new-object System.DirectoryServices.ActiveDirectory.DirectoryContext("Forest", $CurForestName)
+	[array] $ADSites = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($a).sites
+	$ADSites
+}
+
+function Get-adSiteLinkInformation {
+	<#
+	.SYNOPSIS
+	Pulls Site Link info incl. Schedule
+
+	.DESCRIPTION
+	Sometimes you need to know the replication schedule....
+
+	.EXAMPLE
+	Get-ADSiteLinkInformation
+
+	.LINK
+	https://blogs.technet.microsoft.com/ashleymcglone/2011/06/29/report-and-edit-ad-site-links-from-powershell-turbo-your-ad-replication/
+	#>
+
+	$SiteCount = @{Name = "SiteCount"; Expression = { $_.SiteList.Count } }
+	$SiteSchedule = @{Name = "Schedule"; Expression = { If ($_.Schedule) { If (($_.Schedule -Join " ").Contains("240")) { "NonDefault" }Else { "24x7" } }Else { "24x7" } } }
+	Get-ADObject -Filter 'objectClass -eq "siteLink"' -SearchBase (Get-ADRootDSE).ConfigurationNamingContext -Property Options, Cost, ReplInterval, SiteList, Schedule |
+	Select-Object Name, $SiteCount, Cost, ReplInterval, $SiteSchedule, Options
+}
