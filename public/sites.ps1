@@ -8,7 +8,7 @@ function Get-adSubnetsWithoutSite {
 	the logon will be processed by a DC from any site ... that might not
 	be a problem if your network is small and/or fast... but the more sites
 	you have, the more you can run into slow logons. And gut forfend you have
-	roaming profiles, lots of GPOs, netlgon scripts....
+	roaming profiles, lots of GPOs, netlogon scripts....
 
 	This script parses the netlogon log file (%SystemRoot%\debug\netlogon.log)
 	and breaks out any system/ip info for the error 'no client site'

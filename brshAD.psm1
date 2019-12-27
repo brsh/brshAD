@@ -1,5 +1,5 @@
 ﻿param (
-    [switch] $Quiet = $False
+	[switch] $Quiet = $False
 )
 #region Default Private Variables
 # Current script path
@@ -43,7 +43,13 @@ if (test-path $ScriptPath\formats\brshAD.format.ps1xml) {
 #endregion Load Formats
 
 if (-not $Quiet) {
-    Get-adHelp
+	Get-adHelp
+}
+
+try {
+	import-module -Name ActiveDirectory -ErrorAction Stop
+} catch {
+	Write-Status 'Could not import ActiveDirectory Module. Some functions might not work' -e $_ -Type 'Error' -Level 0
 }
 
 #region Module Cleanup
