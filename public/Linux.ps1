@@ -64,6 +64,8 @@ function Get-adLinuxUser {
 			})]
 		[Parameter(Mandatory = $false, ParameterSetName = 'name', Position = 0)]
 		[string] $samAccountName,
+		[string] $Domain = $env:USERDOMAIN,
+		[pscredential] $Credential,
 		[Parameter(Mandatory = $false, ParameterSetName = 'name', Position = 0)]
 		[switch] $IncludeNonNixUsers = $false
 	)
@@ -82,14 +84,32 @@ function Get-adLinuxUser {
 		}
 	}
 
+	$FullDomain = Get-DomainInfo -Domain $Domain -Credential $Credential -Quiet
+
+	$splatUser = @{
+		Server     = $FullDomain.DNSRoot
+		Filter     = $filter
+		Properties = 'uidNumber', 'unixHomeDirectory', 'loginShell', 'gidNumber', 'msSFU30NisDomain'
+	}
+
+	$splatDomain = @{
+		Server = $FullDomain.DNSRoot
+	}
+
+	if ($Credential) {
+		$splatUser.Credential = $Credential
+		$splatDomain.Credential = $Credential
+	}
+
 	try {
-		Get-ADUser -filter $filter -Properties uidNumber, unixHomeDirectory, loginShell, gidNumber | Sort-Object samAccountName | ForEach-Object {
+		#Get-ADUser -filter $filter -Properties uidNumber, unixHomeDirectory, loginShell, gidNumber, msSFU30NisDomain @splat | Sort-Object samAccountName | ForEach-Object {
+		Get-ADUser @splatUser | Sort-Object samAccountName | ForEach-Object {
 			$_.PSTypeNames.Insert(0, "brshAD.LinuxUser")
 			$name = $_.samAccountName
 			$gid = $_.gidNumber
 			try {
 				if (($null -ne $_.gidNumber) -and ($_.gidNumber -ge 0) ) {
-					$group = get-adGroup -filter "gidNumber -eq $($_.gidNumber)"
+					$group = get-adGroup -filter "gidNumber -eq $($_.gidNumber)" @splatDomain
 					Add-Member -InputObject $_ -MemberType NoteProperty -Name 'unixGroupName' -Value $group.Name -ErrorAction Stop -Force
 					Add-Member -InputObject $_ -MemberType NoteProperty -Name 'unixGroupDistinguishedName' -Value $group.DistinguishedName -ErrorAction Stop -Force
 					Add-Member -InputObject $_ -MemberType NoteProperty -Name 'unixGroupsamAccountName' -Value $group.samAccountName -ErrorAction Stop -Force
@@ -100,8 +120,8 @@ function Get-adLinuxUser {
 				}
 			} catch {
 				Write-Status "Could not query gidNumber from AD" -e $_ -Type "Error" -Level 0
-				Write-status "Name: ", $name -type Warning, Info -Level 1
-				Write-status "gid : ", $gid -type Warning, Info -Level 1
+				Write-status "Name:", $name -type Warning, Info -Level 1
+				Write-status "gid :", $gid -type Warning, Info -Level 1
 			}
 			$_
 		}
@@ -177,9 +197,14 @@ function Get-adLinuxGroup {
 			})]
 		[Parameter(Mandatory = $false, ParameterSetName = 'name', Position = 0)]
 		[string] $Name,
+		[string] $Domain = $env:USERDOMAIN,
+		[pscredential] $Credential,
 		[Parameter(Mandatory = $false, ParameterSetName = 'name', Position = 0)]
 		[switch] $IncludeNonNixGroups = $false
 	)
+
+	$FullDomain = Get-DomainInfo -Domain $Domain -Credential $Credential -Quiet
+
 	[string] $filter = "gidNumber -like '*'"
 
 	if ($PSBoundParameters.ContainsKey('gid')) {
@@ -194,8 +219,18 @@ function Get-adLinuxGroup {
 		}
 	}
 
+	$splatDomain = @{
+		Server     = $FullDomain.DNSRoot
+		Filter     = $filter
+		Properties = 'gidNumber', 'msSFU30NisDomain'
+	}
+
+	if ($Credential) {
+		$splatDomain.Credential = $Credential
+	}
+
 	try {
-		Get-ADGroup -filter $filter  -Properties gidNumber | Sort-Object Name | ForEach-Object {
+		Get-ADGroup @splatDomain | Sort-Object Name | ForEach-Object {
 			$_.PSTypeNames.Insert(0, "brshAD.LinuxGroup")
 			$_
 		}
@@ -206,9 +241,21 @@ function Get-adLinuxGroup {
 
 function Get-adLinuxNextAvailableGID {
 	param (
+		[string] $Domain = $ENV:USERDNSDOMAIN,
+		[pscredential] $Credential,
 		[switch] $AsObject = $false
 	)
-	$retval = Get-NextAvailableID -Type 'GID'
+
+	$splat = @{
+		Type   = 'GID'
+		Domain = $Domain
+	}
+
+	if ($Credential) {
+		$splat.Credential = $Credential
+	}
+
+	$retval = Get-NextAvailableID @splat
 	if ($AsObject) {
 		$retval
 	} else {
@@ -218,12 +265,180 @@ function Get-adLinuxNextAvailableGID {
 
 function Get-adLinuxNextAvailableUID {
 	param (
+		[string] $Domain = $ENV:USERDNSDOMAIN,
+		[pscredential] $Credential,
 		[switch] $AsObject = $false
 	)
-	$retval = Get-NextAvailableID -Type 'UID'
+	$splat = @{
+		Type   = 'UID'
+		Domain = $Domain
+	}
+
+	if ($Credential) {
+		$splat.Credential = $Credential
+	}
+
+	$retval = Get-NextAvailableID @splat
 	if ($AsObject) {
 		$retval
 	} else {
 		$retval.Next
+	}
+}
+
+
+
+function Disable-adLinuxUser {
+	<#
+	.SYNOPSIS
+	Disables the Linux login for a user (or removes the attribs completely)
+
+	.DESCRIPTION
+	Sometimes you need to keep a *nix enabled user from being a *nix enabled user.
+	The simplest way is to remove all *nix attributes - boom done! But... that's
+	not necessarily the best way: it "orphans" the UID.
+
+	But wait, there's another way: set the user's login shell to something
+	fake - like /bin/false instead of /bin/bash. That way, if they try to log in to
+	a *nix box, it can't load a shell and login fails. And you can re-enable them
+	later just by setting a real shell and their UID is intact and safe and their
+	perms continue to be valid.
+
+	This script, by default, sets the login shell to /bin/false thereby 'disabling'
+	the *nix-ness of the user.
+
+	This script can also remove all the *nix attribs, in the event you want to do
+	that. It's not recommended, but you can do it if you want - just use the
+	RemoveAll switch - boom done.
+
+	.PARAMETER uid
+	The UID of the user to disable
+
+	.PARAMETER samAccountName
+	The Account Name of the user to disable
+
+	.PARAMETER RemoveAll
+	Remove all *nix attributes - not the preferred option :)
+
+	.PARAMETER Force
+	Just do it, don't ask for confirmation
+
+	.PARAMETER WhatIf
+	Just tell me what you _would_ do without the WhatIf switch
+
+	.EXAMPLE
+	Disable-adLinuxUser -uid 1000
+
+	Disables the user with uid 1000
+
+	.EXAMPLE
+	Disable-adLinuxUser -samAccountName AUser -Force
+
+	Disables the AUser without pausing to ask for confirmation
+
+	.EXAMPLE
+	Disable-adLinuxUser -uid 1000 -RemoveAll
+
+	Removes all *nix attributes from the user with UID 1000 ... incl that UID!!
+	#>
+	[CmdletBinding(DefaultParameterSetName = 'name')]
+	param (
+		[ArgumentCompleter( {
+				param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
+				if ($WordToComplete) {
+					(Get-adLinuxUser | Sort-Object uidNumber | Where-Object { $_.uidNumber -match $WordToComplete }).uidNumber
+				} else {
+					(Get-adLinuxUser | Sort-Object uidNumber).uidNumber
+				}
+			})]
+		[Parameter(Mandatory = $true, ParameterSetName = 'uid', Position = 0, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+		[int] $uid,
+		[ArgumentCompleter( {
+				param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
+				if ($WordToComplete) {
+					(Get-adLinuxUser | Where-Object { $_.samAccountName -match $WordToComplete }).samAccountName
+				} else {
+					(Get-adLinuxUser).samAccountName
+				}
+			})]
+		[Parameter(Mandatory = $true, ParameterSetName = 'name', Position = 0, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+		[string] $samAccountName,
+		[string] $Domain = $env:USERDOMAIN,
+		[pscredential] $Credential,
+		[switch] $RemoveAll = $false,
+		[switch] $Force = $false,
+		[switch] $WhatIf = $false
+	)
+
+	$FullDomain = Get-DomainInfo -Domain $Domain -Credential $Credential -Quiet
+
+	$SplatUser = @{
+		Domain = $FullDomain.DNSRoot
+	}
+
+	if ($Credential) {
+		$SplatUser.Credential = $Credential
+	}
+
+	if ($PSBoundParameters.ContainsKey('uid')) {
+		$splatUser.uid = $uid
+	} else {
+		$splatUser.samAccountName = $samAccountName
+	}
+
+	#Write-Status 'Validating user...' -Type Info -Level 0
+	$user = Get-adLinuxUser @SplatUser
+
+	if ($null -eq $user) {
+		Write-Status 'User not found' -Type Error -Level 0
+		Write-Status 'Probably not a linux enabled user (or bad creds). Aborting' -Type Warning -Level 1
+	} else {
+		#Write-Status 'User found!' -Type 'Good' -Level 1
+		Write-User -User $user -Level 2
+
+		$splat = @{
+			Server      = $FullDomain.DNSRoot
+			Identity    = $user.SamAccountName
+			ErrorAction = 'Stop'
+			WhatIf      = $WhatIf
+			Confirm     = -not $Force
+		}
+
+		if ($Credential) {
+			$splat.Credential = $Credential
+		}
+
+		if (-not $RemoveAll) {
+			try {
+				#Write-Status -Message 'Attempting to disable linux for user' -Type Info -Level 0
+				$splat.Replace = @{ loginShell = "/bin/false" }
+				Set-ADUser @splat
+			} catch {
+				Write-Status -Message 'Error setting AD attribute' -e $_ -type Error -Level 1
+			}
+		} else {
+			try {
+				#Write-Status -Message 'Attempting to clear all linux attributes for user' -Type Info -Level 0
+				#Write-Status -Message 'RemoveAll option enabled!' -Type Warning -Level 1
+				$splat.Clear = 'msSFU30Name', 'uid', 'msSFU30NisDomain', 'uidNumber', 'gidNumber', 'loginShell', 'unixHomeDirectory'
+				Set-adUser @splat
+			} catch {
+				Write-Status -Message 'Error clearing AD attributes' -e $_ -type Error -Level 1
+			}
+		}
+		#Write-Status 'Re-Validating user...' -Type Info -Level 0
+		$user = Get-adLinuxUser @SplatUser
+		if ($null -eq $user) {
+			Write-Status 'User not found' -Type Error -Level 0
+			if ($RemoveAll) {
+				Write-Status "That's expected when you remove all attributes" -Type Good -Level 1
+			} else {
+				Write-Status "That probably not good..." -Type Warning -Level 1
+			}
+		} else {
+			#Write-Status 'User found!' -Type 'Good' -Level 1
+			Write-User -User $user -Level 2 -After
+		}
+		Write-Host ''
 	}
 }

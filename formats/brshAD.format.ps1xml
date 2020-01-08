@@ -251,5 +251,76 @@
 			</TableControl>
 		</View>
 
+
+
+		<View>
+			<Name>brshAD.UserEdit</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.UserEdit</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>When</Label>
+						<width>7</width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Name</Label>
+						<Width>30</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>samAccountName</Label>
+						<Width>20</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>uID</Label>
+						<width>8</width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>gID</Label>
+						<width>8</width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>loginShell</Label>
+						<width>11</width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>unixHomeDirectory</Label>
+						<width>26</width>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>When</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Name</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>samAccountName</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>uid</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>gid</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Shell</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Home</PropertyName>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+
+
+
 	</ViewDefinitions>
 </Configuration>
