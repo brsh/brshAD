@@ -319,7 +319,47 @@
 			</TableControl>
 		</View>
 
-
+		<View>
+			<Name>brshAD.ForestRoles</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.ForestRoles</TypeName>
+			</ViewSelectedBy>
+			<ListControl>
+				<ListEntries>
+					<ListEntry>
+						<ListItems>
+							<ListItem>
+								<PropertyName>Forest</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>Domain</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>InfrastructureRole</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>NamingRole</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>PdcRole</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>RidRole</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>SchemaRole</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>ForestDNSZones</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>DomainDNSZones</PropertyName>
+							</ListItem>
+						</ListItems>
+					</ListEntry>
+				</ListEntries>
+			</ListControl>
+		</View>
 
 
 	</ViewDefinitions>

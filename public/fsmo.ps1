@@ -31,47 +31,16 @@ Function Get-adFSMORoleOwner {
     -----------
     Retrieves the FSMO role owners each domain in a forest. Also lists the domain and forest.
 
+.LINK
+https://docs.microsoft.com/en-us/archive/blogs/the_9z_by_chris_davis/forestdnszones-or-domaindnszones-fsmo-says-the-role-owner-attribute-could-not-be-read
 #>
 	[cmdletbinding()]
 	Param()
-	# 	Try {
-	# 		$forest = [system.directoryservices.activedirectory.Forest]::GetCurrentForest()
-	# 		ForEach ($domain in $forest.domains) {
-	# 			$forestproperties = @{
-	# 				Forest             = $Forest.name
-	# 				Domain             = $domain.name
-	# 				SchemaRole         = $forest.SchemaRoleOwner
-	# 				NamingRole         = $forest.NamingRoleOwner
-	# 				RidRole            = $Domain.RidRoleOwner
-	# 				PdcRole            = $Domain.PdcRoleOwner
-	# 				InfrastructureRole = $Domain.InfrastructureRoleOwner
-	# 			}
-	# 			if ($forestproperties.Domain -eq $forestproperties.Forest) {
-	# 				try {
-	# 					$forestproperties.ForestDNSZones = (Get-ADObject "cn=infrastructure,DC=ForestDNSZones,DC=smarshdev,DC=com" -Properties fSMORoleOwner).fSMORoleOwner
-	# 				} catch {
-	# 					$forestproperties.ForestDNSZones = "Error: Couldn't Read"
-	# 				}
-	# 			}
-	# 			try {
-	# 				$forestproperties.DomainDNSZones = (Get-ADObject "cn=infrastructure,DC=DomainDNSZones,DC=smarshdev,DC=com" -Properties fSMORoleOwner).fSMORoleOwner
-	# 			} catch {
-	# 				$forestproperties.DomainDNSZones = "Error: Couldn't Read"
-	# 			}
-	# 			$newobject = New-Object PSObject -Property $forestproperties
-	# 			$newobject.PSTypeNames.Insert(0, "ForestRoles")
-	# 			$newobject
-	# 		}
-	# 	} Catch {
-	# 		Write-Warning "$($Error)"
-	# 	}
-	# }
 
-	# function Get-adFSMODNS {
 	Try {
 		$forest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
 		ForEach ($domain in $forest.domains) {
-			$forestproperties = @{
+			$ForestProperties = @{
 				Forest             = $Forest.name
 				Domain             = $domain.name
 				SchemaRole         = $forest.SchemaRoleOwner
@@ -80,7 +49,7 @@ Function Get-adFSMORoleOwner {
 				PdcRole            = $Domain.PdcRoleOwner
 				InfrastructureRole = $Domain.InfrastructureRoleOwner
 			}
-			if ($forestproperties.Domain -eq $forestproperties.Forest) {
+			if ($ForestProperties.Domain -eq $ForestProperties.Forest) {
 				try {
 					$searchBase = "LDAP://$($Forest.Name)/DC=ForestDnsZones,DC=$($forest.name.Replace('.',',DC='))"
 					$query = new-object System.DirectoryServices.DirectoryEntry($searchBase)
@@ -90,17 +59,19 @@ Function Get-adFSMORoleOwner {
 					[string] $b = $roleHolderDN.Replace('CN=NTDS Settings,', '').Split(',')
 					$b = $b.Trim().Replace('CN=NTDS Settings,', '').Replace('CN', '').Split('=', [StringSplitOptions]::RemoveEmptyEntries)[0].TrimEnd(',').ToLower().Trim()
 					if ($b.Length -gt 0) {
-						$forestproperties.ForestDNSZones = "${b}`.$($domain.Name)"
+						$ForestProperties.ForestDNSZones = "${b}`.$($domain.Name)"
 					} else {
-						$forestproperties.ForestDNSZones = $roleHolderDN
+						$ForestProperties.ForestDNSZones = $roleHolderDN
 					}
 				} catch {
 					if ($PSVersionTable.PSVersion.Major -eq 2) {
-						$forestproperties.ForestDNSZones = "(doesn't work on PSv2)"
+						$ForestProperties.ForestDNSZones = "(doesn't work on PSv2)"
 					} else {
-						$forestproperties.ForestDNSZones = $_.Exception.Message
+						$ForestProperties.ForestDNSZones = $_.Exception.Message
 					}
 				}
+			} else {
+				$ForestProperties.ForestDNSZones = 'n/a'
 			}
 			try {
 				$searchBase = "LDAP://$($Domain.Name)/DC=DomainDnsZones,DC=$($Domain.Name.Replace('.',',DC='))"
@@ -111,21 +82,21 @@ Function Get-adFSMORoleOwner {
 				[string] $b = $roleHolderDN.Replace('CN=NTDS Settings,', '').Split(',')
 				$b = $b.Trim().Replace('CN=NTDS Settings,', '').Replace('CN', '').Split('=', [StringSplitOptions]::RemoveEmptyEntries)[0].TrimEnd(',').ToLower().Trim()
 				if ($b.Length -gt 0) {
-					$forestproperties.DomainDNSZones = "${b}`.$($domain.Name)"
+					$ForestProperties.DomainDNSZones = "${b}`.$($domain.Name)"
 				} else {
-					$forestproperties.DomainDNSZones = $roleHolderDN
+					$ForestProperties.DomainDNSZones = $roleHolderDN
 				}
 			} catch {
 				if ($PSVersionTable.PSVersion.Major -eq 2) {
-					$forestproperties.DomainDNSZones = "(doesn't work on PSv2)"
+					$ForestProperties.DomainDNSZones = "(doesn't work on PSv2)"
 				} else {
-					$forestproperties.DomainDNSZones = $_.Exception.Message
+					$ForestProperties.DomainDNSZones = $_.Exception.Message
 				}
 
 			}
-			$newobject = New-Object PSObject -Property $forestproperties
-			$newobject.PSTypeNames.Insert(0, "ForestRoles")
-			$newobject
+			$NewObject = New-Object PSObject -Property $ForestProperties
+			$NewObject.PSTypeNames.Insert(0, "brshAD.ForestRoles")
+			$NewObject
 		}
 	} Catch {
 		Write-Warning "$($Error)"
