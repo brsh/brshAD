@@ -329,25 +329,25 @@
 					<ListEntry>
 						<ListItems>
 							<ListItem>
-								<PropertyName>Forest</PropertyName>
-							</ListItem>
-							<ListItem>
 								<PropertyName>Domain</PropertyName>
 							</ListItem>
 							<ListItem>
-								<PropertyName>InfrastructureRole</PropertyName>
+								<PropertyName>Forest</PropertyName>
 							</ListItem>
 							<ListItem>
-								<PropertyName>NamingRole</PropertyName>
+								<PropertyName>DomainNaming</PropertyName>
 							</ListItem>
 							<ListItem>
-								<PropertyName>PdcRole</PropertyName>
+								<PropertyName>Infrastructure</PropertyName>
 							</ListItem>
 							<ListItem>
-								<PropertyName>RidRole</PropertyName>
+								<PropertyName>PDCEmulator</PropertyName>
 							</ListItem>
 							<ListItem>
-								<PropertyName>SchemaRole</PropertyName>
+								<PropertyName>RID</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>Schema</PropertyName>
 							</ListItem>
 							<ListItem>
 								<PropertyName>ForestDNSZones</PropertyName>

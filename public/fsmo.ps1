@@ -41,17 +41,17 @@ https://docs.microsoft.com/en-us/archive/blogs/the_9z_by_chris_davis/forestdnszo
 		$forest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
 		ForEach ($domain in $forest.domains) {
 			$ForestProperties = @{
-				Forest             = $Forest.name
-				Domain             = $domain.name
-				SchemaRole         = $forest.SchemaRoleOwner
-				NamingRole         = $forest.NamingRoleOwner
-				RidRole            = $Domain.RidRoleOwner
-				PdcRole            = $Domain.PdcRoleOwner
-				InfrastructureRole = $Domain.InfrastructureRoleOwner
+				Forest         = $Forest.name
+				Domain         = $domain.name
+				Schema         = $forest.SchemaRoleOwner
+				DomainNaming   = $forest.NamingRoleOwner
+				RID            = $Domain.RidRoleOwner
+				PDCEmulator    = $Domain.PdcRoleOwner
+				Infrastructure = $Domain.InfrastructureRoleOwner
 			}
 			if ($ForestProperties.Domain -eq $ForestProperties.Forest) {
 				try {
-					$searchBase = "LDAP://$($Forest.Name)/DC=ForestDnsZones,DC=$($forest.name.Replace('.',',DC='))"
+					[string] $searchBase = "LDAP://$($Forest.Name)/DC=ForestDnsZones,DC=$($forest.name.Replace('.',',DC='))"
 					$query = new-object System.DirectoryServices.DirectoryEntry($searchBase)
 					$adSearch = new-object System.DirectoryServices.DirectorySearcher($query)
 					$null = $adSearch.PropertiesToLoad.Add('fSMORoleOwner')
@@ -74,7 +74,7 @@ https://docs.microsoft.com/en-us/archive/blogs/the_9z_by_chris_davis/forestdnszo
 				$ForestProperties.ForestDNSZones = 'n/a'
 			}
 			try {
-				$searchBase = "LDAP://$($Domain.Name)/DC=DomainDnsZones,DC=$($Domain.Name.Replace('.',',DC='))"
+				[string] $searchBase = "LDAP://$($Domain.Name)/DC=DomainDnsZones,DC=$($Domain.Name.Replace('.',',DC='))"
 				$query = new-object System.DirectoryServices.DirectoryEntry($searchBase)
 				$adSearch = new-object System.DirectoryServices.DirectorySearcher($query)
 				$null = $adSearch.PropertiesToLoad.Add('fSMORoleOwner')
@@ -92,7 +92,6 @@ https://docs.microsoft.com/en-us/archive/blogs/the_9z_by_chris_davis/forestdnszo
 				} else {
 					$ForestProperties.DomainDNSZones = $_.Exception.Message
 				}
-
 			}
 			$NewObject = New-Object PSObject -Property $ForestProperties
 			$NewObject.PSTypeNames.Insert(0, "brshAD.ForestRoles")
