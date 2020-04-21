@@ -33,7 +33,10 @@ function Get-adUsersGroups {
 	.NOTES
 	General notes
 	#>
+	[CmdletBinding(DefaultParameterSetName = 'NoPic')]
 	param (
+		[Parameter(Mandatory = $true, ParameterSetName = 'Pic')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'NoPic')]
 		[Alias('Username', 'Name')]
 		$User,
 		[ValidateSet('Tree', 'List', 'Table', 'None')]
@@ -48,9 +51,23 @@ function Get-adUsersGroups {
 			})]
 		[alias('Domain')]
 		[string] $Server = '',
-		[pscredential] $Credential
+		[pscredential] $Credential,
+		[Parameter(Mandatory = $true, ParameterSetName = 'Pic')]
+		[Parameter(Mandatory = $false, ParameterSetName = 'NoPic')]
+		[Alias('Save', 'Image', 'Jpg')]
+		[switch] $Picture = $false,
+		[Parameter(Mandatory = $true, ParameterSetName = 'Pic')]
+		[Alias('Path', 'SaveTo')]
+		[ValidateScript( {
+				If (Test-Path -Path $_.ToString() -PathType Container) {
+					$true
+				} else {
+					Throw "$_ is not a valid destination folder. Enter in 'c:\directory' format"
+				}
+			})]
+		[string] $folder = $(if ($PSCommandPath) { (Split-Path -Parent $PSCommandPath) + '\' } else { '.\' } )
 	)
-	[int] $Level = 1
+	[int] $Level = 0
 
 	$splat = @{	}
 	if ($Server.Trim().Length -gt 0) {
@@ -62,8 +79,30 @@ function Get-adUsersGroups {
 
 	if ($MarkDown -match 'Tree') { $Level = 0 }
 
-	Get-ADPrincipalGroupMembership -Identity $User @splat | Get-ADGroup @splat -Properties description | ForEach-Object {
-		Out-GroupInfo -Group $_ -Level $Level -Markdown $Markdown
-		$_ | Get-ParentGroup -Level ($Level + 1) -Markdown $Markdown @splat
+	$obj = Get-ADUser -LDAPFilter "(SAMAccountName=$User)" @splat -errorAction SilentlyContinue
+
+	if ($null -eq $obj) {
+		$obj = Get-ADGroup -LDAPFilter "(SAMAccountName=$User)" @splat -errorAction SilentlyContinue
+	}
+
+	if ($null -ne $Obj) {
+		$ret = $Obj | get-adobject | Get-ParentGroup -Level $Level -Markdown $Markdown @splat
+		if (-not $psboundparameters.ContainsKey('Picture')) {
+			$ret
+		} else {
+			[string] $DN = $obj.DistinguishedName
+			[string] $Domain = ($DN -split 'DC=')[1].Trim(',')
+			$RunTime = get-date
+			[string] $FileName = "$($obj.samAccountName)_$Domain"
+			[string] $text = "Run Time: {0}" -f (get-date $RunTime -UFormat "%a, %b %d, %Y -- %r UTC%Z") | Out-String
+			$text += "" | Out-String
+			$text += "Domain: $Domain"
+			$text += "" | Out-String
+			$text += "Object: $DN"
+			$text += "" | Out-String
+			$text += ($ret | format-table -Wrap | out-string).Trim("`n").TrimStart("`n")
+
+			DrawIt -Text $text -Filename "${Folder}\${filename}$(get-date $RunTime -f '_yyyy_MM-dd_HHmm').png"
+		}
 	}
 }
