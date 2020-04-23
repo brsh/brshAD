@@ -361,6 +361,36 @@
 			</ListControl>
 		</View>
 
+		<View>
+			<Name>brshAD.GPOSearch</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.GPOSearch</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>Found</Label>
+						<width>7</width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Name</Label>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>Found</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Name</PropertyName>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
 
 	</ViewDefinitions>
 </Configuration>
