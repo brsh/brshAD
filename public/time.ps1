@@ -158,7 +158,7 @@ function Get-adTimePeers {
 	.DESCRIPTION
 	Again, it's hard to remember all the switches for w32tm... or even the name of the
 	command itself - w32tm??? Really? Even with 8.3 you could call it something more
-	memerable!
+	memorable!
 
   For the record, this function just runs w32tm.exe with the following:
 
@@ -178,6 +178,7 @@ function Get-adTimePeers {
   )
 
   [string[]] $retval = w32tm.exe /query /peers /computer:$Computer /verbose
+  $retval += ""
 
   if ($retval -match ' error ') {
     $retval = ($retval.Split(':')[1..($retval.Count)]).Trim() -Join ' '
@@ -188,11 +189,15 @@ function Get-adTimePeers {
     $hash = [ordered] @{ }
     $retval[1..($retval.Count)] | ForEach-Object {
       if ($_.Trim().Length -gt 0) {
-        [string] $a, [string] $b = $_ -split ':'
-        $hash.Add($a.Trim(), $b.Trim())
+        [string] $a, [string] $b = $_ -split ': '
+        $hash.Add(($a.Replace(' ', '')).Trim(), (($b.Trim() -replace "^0x[0-9a-zA-Z]+\s") -replace "(^\d+\s|\(|\))", '').Trim())
+      } else {
+        if ($hash.keys.Count -gt 0) {
+          [PSCustomObject] $hash
+        }
+        $hash = [ordered] @{ }
       }
     }
-    [PSCustomObject] $hash
   }
 }
 
