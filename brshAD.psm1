@@ -5,6 +5,7 @@
 # Current script path
 [string] $script:ScriptPath = Split-Path (Get-Variable MyInvocation -scope script).value.MyCommand.Definition -Parent
 [string[]] $script:ShowHelp = @()
+[string[]] $script:ADDomainList = @($env:USERDNSDOMAIN)
 # if ($PSVersionTable.PSVersion.Major -lt 6) {
 # 	[bool] $IsLinux = $false
 # }
@@ -41,6 +42,10 @@ if (test-path $ScriptPath\formats\brshAD.format.ps1xml) {
 	Update-FormatData $ScriptPath\formats\brshAD.format.ps1xml
 }
 #endregion Load Formats
+
+if (test-path $script:ScriptPath\config\ADDomains.txt) {
+	$script:ADDomainList = @(Get-Content $ScriptPath\config\ADDomains.txt)
+}
 
 if (-not $Quiet) {
 	Get-adHelp

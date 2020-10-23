@@ -1,0 +1,11 @@
+# List of AD Domains for ADUC script
+# This list provides domain autocomplete for the function
+# Note: the file is in .gitingnore, so it won't
+#   accidentally contain "real" domains :)
+# Put 'em in here, fully qualified
+# One per line
+# Comments start with # (so, yeah, they can be here or not - doesn't matter)
+# Example (ya know, just imagine them without the #)
+# example.com
+# lab.example.com
+# other.com
