@@ -391,6 +391,67 @@
 			</TableControl>
 		</View>
 
+		<View>
+			<Name>brshAD.QuickPing</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.QuickPing</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>Status</Label>
+						<Width>15</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>ResponseTime</Label>
+						<Width>12</Width>
+						<Alignment>right</Alignment>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Online</Label>
+						<Width>7</Width>
+						<Alignment>Right</Alignment>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Address</Label>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<ScriptBlock>
+									($_.Status -Replace '(Null - |Request )', '').Trim()
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>ResponseTime</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Off = "$Escape[0m"
+									$color = $Green
+									if ($Host.UI.SupportsVirtualTerminal) {
+										if (-not $_.Online) { $color = $Yellow }
+										"$Color{0,5}$Off" -f $_.Online
+									} else {
+										$_.Online
+									}
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Address</PropertyName>
+							</TableColumnItem>
+
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
 
 	</ViewDefinitions>
 </Configuration>

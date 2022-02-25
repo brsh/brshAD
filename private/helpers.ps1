@@ -85,3 +85,9 @@ function Write-User {
 		When           = $When
 	}
 }
+
+function Test-IsVerbose {
+	[CmdletBinding()]
+	param()
+	[System.Management.Automation.ActionPreference]::SilentlyContinue -ne $VerbosePreference
+}

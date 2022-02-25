@@ -44,7 +44,7 @@ if (test-path $ScriptPath\formats\brshAD.format.ps1xml) {
 #endregion Load Formats
 
 if (test-path $script:ScriptPath\config\ADDomains.txt) {
-	$script:ADDomainList = @(Get-Content $ScriptPath\config\ADDomains.txt)
+	$script:ADDomainList = @(Get-Content $ScriptPath\config\ADDomains.txt | ForEach-Object { if (($_ -match '.\.\w+') -and ($_ -notmatch '^[#\s]')) { $_.Trim() } })
 }
 
 if (-not $Quiet) {

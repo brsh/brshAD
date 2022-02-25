@@ -54,7 +54,7 @@ function Start-adADUC {
 					(Get-adADDomain).Name
 				}
 			})]
-		[string] $Domain = $script:ADDomainList[0],
+		[string] $Domain = (Get-adADDomain)[0].Name,
 		[string] $UserName = ''
 	)
 
@@ -93,7 +93,7 @@ function Get-adADDomain {
 	)
 
 	if (test-path $script:ScriptPath\config\ADDomains.txt) {
-		$all = @(Get-Content $ScriptPath\config\ADDomains.txt | Where-Object { $_ -notmatch "^#" })
+		$all = @((Get-Content $ScriptPath\config\ADDomains.txt | Where-Object { (($_ -match '.\.\w+') -and ($_ -notmatch '^[#\s]')) }).Trim())
 	} else {
 		$all = @($env:USERDNSDOMAIN)
 	}
