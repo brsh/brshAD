@@ -54,18 +54,18 @@ function Get-adLiveComputer {
 					(Get-adADDomain).Name
 				}
 			})]
-		[string] $Domain = (Get-adADDomain)[0].Name,
+		[string] $Domain = $env:USERDNSDOMAIN,
 		[int] $WithinDays,
 		[pscredential] $Credential
 	)
 
-	try {
-		Import-Module -Name ActiveDirectory -ErrorAction Stop -Verbose:$false
-	} catch {
-		Write-Status -Message 'This function requires the ActiveDirectory PowerShell module' -level 0 -Type 'Info'
-		Write-Status -Message '... which was not found' -level 1 -Type 'Error' -e $_
-		Throw 'ActiveDirectory module not found.'
-	}
+	# try {
+	# 	Import-Module -Name ActiveDirectory -ErrorAction Stop -Verbose:$false
+	# } catch {
+	# 	Write-Status -Message 'This function requires the ActiveDirectory PowerShell module' -level 0 -Type 'Info'
+	# 	Write-Status -Message '... which was not found' -level 1 -Type 'Error' -e $_
+	# 	Throw 'ActiveDirectory module not found.'
+	# }
 
 	[bool] $Verbose = $false
 	if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
@@ -114,7 +114,7 @@ function Get-adLiveComputer {
 		expr = { ($_.DNSHostName).ToLower() }
 	}
 	$Time = (Get-Date).AddDays( - ($WithinDays))
-	$Filter = { (Enabled -eq 'true') -and (LastLogonTimestamp -gt $time) -and (servicePrincipalName -NotLike "MSServerCluster/*") -and (OperatingSystem -Like "Windows*") }
+	$Filter = { (Enabled -eq 'true') -and (LastLogonTimestamp -gt $time) -and (servicePrincipalName -NotLike "MSClusterVirtualServer/*") -and (OperatingSystem -Like "Windows*") }
 	$WhereWindows = { $_.OperatingSystem -match 'Windows' }
 	$WherePing = {
 		$Response = Get-adQuickPing -Name ($_.DNSHostName) -Verbose:$Verbose
@@ -127,7 +127,7 @@ function Get-adLiveComputer {
 
 	$Splat = @{
 		Filter     = $Filter
-		Properties = 'Name', 'OperatingSystem', 'LastLogonTimeStamp', 'Enabled', 'DNSHostName'
+		Properties = 'Name', 'OperatingSystem', 'LastLogonTimeStamp', 'Enabled', 'DNSHostName', 'servicePrincipalName'
 		Server     = $Server
 	}
 
@@ -140,7 +140,7 @@ function Get-adLiveComputer {
 	}
 
 	(Get-ADComputer @Splat).Where($WherePing) |
-		Select-Object Name, OperatingSystem, $Field, $DNSHostName | Sort-Object Name
+		Select-Object Name, OperatingSystem, $Field, $DNSHostName | Sort-Object Name -Unique
 }
 
 function Get-adDomainReplicationAge {
@@ -174,7 +174,7 @@ function Get-adDomainReplicationAge {
 	[CmdLetBinding()]
 	param (
 		[Alias('Domain', 'DomainController')]
-		[string] $Server = (Get-adADDomain)[0].Name,
+		[string] $Server = $env:USERDNSDOMAIN,
 		[pscredential] $Credential
 	)
 	if (Test-IsVerbose) {
