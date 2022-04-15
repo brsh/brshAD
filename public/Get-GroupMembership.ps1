@@ -114,7 +114,7 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
         ## Declarations and Initializations
         [int]$script:ItemCount = -1
         [int]$Script:TotalAllUsers = 0
-        $Group = (Get-Culture).TextInfo.ToTitleCase($group)
+        $Group = Get-TitleCase -String $Group
 
         $folder = (Resolve-Path $folder).ProviderPath
         if (-not $folder.EndsWith("\")) { $folder += "\" }
@@ -156,18 +156,59 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                         "Non-Fatal Error with ProgressBar. Group/User: {0}" -f $group | Write-Verbose
                     }
 
-                    if ($_.ObjectClass -eq "Group" ) {
-                        Get-DomainGroupMembers -Group $_.SamAccountName -parent $theGroup.Name -Level ($level + 1) -System $System -HomeDomain $WhatIsTheDomain
-                    } else {
-                        $UserIsEnabled = try {
-                        (Get-ADUser -Identity $_.SamAccountName -ErrorAction Stop).Enabled
-                        } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
-                            'Deleted'
-                        } catch {
-                            'Error'
+                    $SamAN = $_.SamAccountName
+                    # if ($_.ObjectClass -eq "Group" ) {
+                    #     Get-DomainGroupMembers -Group $SamAN -parent $theGroup.Name -Level ($level + 1) -System $System -HomeDomain $WhatIsTheDomain
+                    # } else {
+                    #     $UserIsEnabled = try {
+                    #         (Get-ADUser -Identity $SamAN -ErrorAction Stop).Enabled
+                    #     } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                    #         try {
+                    #         (Get-ADComputer -Identity $SamAN -ErrorAction Stop).Enabled
+                    #         } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                    #             'Deleted'
+                    #         } catch {
+                    #             'Error.ADComputer'
+                    #         }
+                    #     } catch {
+                    #         'Error.ADUser'
+                    #     }
+
+                    [string] $UserIsEnabled = ''
+                    switch ($_.ObjectClass.ToLower()) {
+                        'group' { Get-DomainGroupMembers -Group $SamAN -parent $theGroup.Name -Level ($level + 1) -System $System -HomeDomain $WhatIsTheDomain; break }
+                        'user' {
+                            try {
+                                $UserIsEnabled = (Get-ADUser -Identity $SamAN -ErrorAction Stop).Enabled
+                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                                'Deleted/User'
+                            } catch {
+                                'Error/User'
+                            }
+                            break
                         }
-                        TheObject -sSam $_.SamAccountName -sName $_.Name -sScope $WhatIsTheDomain -level ($level + 1) -sUserOrGroup "User" -sEnabled $UserIsEnabled -sParent $group -sDN $_.DistinguishedName -sSystem $System
+                        'computer' {
+                            try {
+                                $UserIsEnabled = (Get-ADComputer -Identity $SamAN -ErrorAction Stop).Enabled
+                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                                'Deleted/Computer'
+                            } catch {
+                                'Error/Computer'
+                            }
+                            break
+                        }
+                        'msds-managedserviceaccount' {
+                            try {
+                                $UserIsEnabled = (Get-ADServiceAccount -Identity $SamAN -ErrorAction Stop).Enabled
+                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                                'Deleted/Computer'
+                            } catch {
+                                'Error/Computer'
+                            }
+                            break
+                        }
                     }
+                    TheObject -sSam $SamAN -sName $_.Name -sScope $WhatIsTheDomain -level ($level + 1) -sUserOrGroup (Get-TitleCase -String ($_.ObjectClass)) -sEnabled $UserIsEnabled -sParent $group -sDN $_.DistinguishedName -sSystem $System
                 }
             }
             Write-Progress -Id ($level + 1) -Activity $Activity -Completed
@@ -361,13 +402,13 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                 [string] $footer,
                 [bool] $picture = $false
             )
-            $outtext = $header
-            $outtext += ($Script:AllResults | Format-Table -AutoSize Hierarchy, FullName, Enabled, Class, @{Label = "Members"; expression = { $_.Members }; align = 'right' } | Out-String).Trim("`n").TrimStart("`n")
-            $outtext += $footer
+            $OutText = $header
+            $OutText += ($Script:AllResults | Format-Table -AutoSize Hierarchy, FullName, Enabled, @{Label = "Class"; expression = { $_.Class -replace 'Msds-Managedserviceaccount', 'msds-MSA' } }, @{Label = "Members"; expression = { $_.Members }; align = 'right' } | Out-String).Trim("`n").TrimStart("`n")
+            $OutText += $footer
             if ($picture) {
-                DrawIt $outtext
+                DrawIt $OutText
             } else {
-                $outtext
+                $OutText
             }
         }
 
@@ -440,7 +481,7 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
             } catch { $Domain = "Name not found" }
 
             $temp = Get-ADGroup -Filter { objectClass -eq "Group" -and (SamAccountName -eq $group -or Name -eq $group) } -Server $domain
-            "Requesteing group members of {0} on {1} domain" -f $group, $Domain | Write-Verbose
+            "Requesting group members of {0} on {1} domain" -f $group, $Domain | Write-Verbose
             $Activity = "Getting members of {0} on {1} domain" -f $group, $Domain
             Write-Progress -Id 0 -Activity $Activity -PercentComplete (10) -Status "Starting Group Enumeration Subprocess..."
 
