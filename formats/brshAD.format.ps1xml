@@ -90,7 +90,12 @@
 									$color = $Green
 									if (((get-date) - ($_.LastAttempt)).Minutes -gt 60) { $color = $Yellow }
 									if (((get-date) - ($_.LastAttempt)).Days -gt 1) { $color = $Red }
+									if ($Host.UI.SupportsVirtualTerminal) {
 									"$Color{0}$Off" -f $(get-date $_.LastAttempt -format 'dd-MMM hh:mmt')
+									} else {
+										$(get-date $_.LastAttempt -format 'dd-MMM hh:mmt')
+									}
+
 								</ScriptBlock>
 							</TableColumnItem>
 							<TableColumnItem>
@@ -101,7 +106,12 @@
 									$Off = "$Escape[0m"
 									$color = $Yellow
 									if ($_.LastSuccess -eq $_.LastAttempt) { $color = $Green }
-									"$Color{0}$Off" -f $(get-date $_.LastSuccess -format 'dd-MMM hh:mmt')
+									if ($Host.UI.SupportsVirtualTerminal) {
+										"$Color{0}$Off" -f $(get-date $_.LastSuccess -format 'dd-MMM hh:mmt')
+									} else {
+										$(get-date $_.LastSuccess -format 'dd-MMM hh:mmt')
+									}
+
 								</ScriptBlock>
 							</TableColumnItem>
 							<TableColumnItem>
@@ -113,8 +123,13 @@
 									$Off = "$Escape[0m"
 									$color = $Green
 									if ($_.ConsecutiveFailures -gt 0) { $color = $Yellow }
-									if ($_.ConsecutiveFailures -gt 0) { $color = $Red }
-									"$Color{0,5}$Off" -f $_.ConsecutiveFailures
+									if ($_.ConsecutiveFailures -gt 10) { $color = $Red }
+
+									if ($Host.UI.SupportsVirtualTerminal) {
+										"$Color{0,5}$Off" -f $_.ConsecutiveFailures
+									} else {
+										$_.ConsecutiveFailures
+									}
 								</ScriptBlock>
 							</TableColumnItem>
 							<TableColumnItem>
@@ -445,13 +460,151 @@
 							<TableColumnItem>
 								<PropertyName>Address</PropertyName>
 							</TableColumnItem>
-
 						</TableColumnItems>
 					</TableRowEntry>
 				</TableRowEntries>
 			</TableControl>
 		</View>
 
+		<View>
+			<Name>brshAD.LogEvents</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.LogonEvents</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>TimeCreated</Label>
+						<Width>25</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>UserName</Label>
+						<Width>17</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Type</Label>
+						<Width>8</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Outcome</Label>
+						<Width>15</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Logontype</Label>
+						<Width>18</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Domain</Label>
+						<Width>20</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Workstation</Label>
+						<Width>20</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>FailureReason</Label>
+						<Width>30</Width>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<ScriptBlock>
+									$_.TimeCreated.ToString('yyyy-MMM-dd  hh:mm:sstt')
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>UserName</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										Switch ($_.Type.Trim()) {
+											'Logon' { $color = $Green }
+											'Logoff' { $color = $Green }
+											'Lockout' { $color = $Red }
+											'Disconnect' { $color = $Yellow }
+										}
+									}
+										"$Color{0}$End" -f $_.Type
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										Switch ($_.Outcome.Trim()) {
+											'Success' { $color = $Green }
+											'Failure' { $color = $Red }
+											'Complete' { $color = $Green }
+											'Initiated' { $color = $Green }
+											'n/a' { $color = ''}
+											'AlternateCreds' { $color = $Yellow}
+										}
+									}
+										"$Color{0}$End" -f $_.Outcome
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Logontype</PropertyName>
+							</TableColumnItem>
+
+							<TableColumnItem>
+								<PropertyName>Domain</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Workstation</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$_.FailureReason -replace '^STATUS_', ''
+								</ScriptBlock>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+		<View>
+			<Name>brshAD.LogonFailureCode</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.LogonFailureCode</TypeName>
+			</ViewSelectedBy>
+			<ListControl>
+				<ListEntries>
+					<ListEntry>
+						<ListItems>
+							<ListItem>
+								<PropertyName>Code</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>Text</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>Explanation</PropertyName>
+							</ListItem>
+						</ListItems>
+					</ListEntry>
+				</ListEntries>
+			</ListControl>
+		</View>
 
 	</ViewDefinitions>
 </Configuration>

@@ -62,13 +62,6 @@ function Write-User {
 		Type  = 'Warning', 'Info'
 		Level = $Level
 	}
-	# Write-Status -Message 'Name :', $User.Name @splat
-	# Write-Status -Message 'DN   :', $User.DistinguishedName @splat
-	# Write-Status -Message 'User :', $User.samAccountName @splat
-	# Write-Status -Message 'uID  :', $User.uidNumber @splat
-	# Write-Status -Message 'gID  :', $User.gidNumber @splat
-	# Write-Status -Message 'Shell:', $User.loginShell @splat
-	# Write-Status -Message 'Home :', $User.unixHomeDirectory @splat
 
 	[string] $When = "Before"
 	if ($After) { $When = "After" }
@@ -90,4 +83,24 @@ function Test-IsVerbose {
 	[CmdletBinding()]
 	param()
 	[System.Management.Automation.ActionPreference]::SilentlyContinue -ne $VerbosePreference
+}
+
+function Test-IsAdmin {
+	[bool]$IsAdmin = $false
+	if ( ([System.Environment]::OSVersion.Version.Major -gt 5) -and ( # Vista and ...
+			new-object Security.Principal.WindowsPrincipal (
+				[Security.Principal.WindowsIdentity]::GetCurrent()) # current user is admin
+		).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) ) {
+		$IsAdmin = $True
+	} else {
+		$IsAdmin = $False
+	}
+	$IsAdmin
+}
+
+function Get-TitleCase {
+	param (
+		[string] $String = 'no text specified'
+	)
+	(Get-Culture).TextInfo.ToTitleCase($String)
 }
