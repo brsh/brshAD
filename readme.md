@@ -16,11 +16,14 @@ around AD.
 | Get-adDomainReplicationAge | Gets the value of the msDS-LogonTimeSyncInterval for the domain             |
 | Get-adFSMORoleOwner        | FSMO role owners 				                                           |
 | Get-adFunctionalLevels     | Forest and domain functional levels                                         |
+| Get-adGroupMembership      | Recursive Local and AD Group Membership                                     |
 | Get-adHelp                 | List commands available in the brshAD Module                                |
 | Get-adLDAPsBindInfo        | Parses the Security EventLog for WinFilter events to find LDAPS connections |
 | Get-adLinuxGroup           | Gets groups and their *nix GID                                              |
 | Get-adLinuxUser            | Gets users and their *nix UID                                               |
 | Get-adLiveComputer         | Mixes get-adcomputer with ping to pull a list of "online" computers         |
+| Get-adLogonEvents          | Filter the Domain's Security log for unsuccessful Logons                    |
+| Get-adLogonFailureCodes    | Just a handy Logon Event Code Error parser                                  |
 | Get-adQuickPing            | A simple CIM ping wrapper                                                   |
 | Get-adSiteInformation      | Pulls Site Information like name, IPs...                                    |
 | Get-adSiteLinkInformation  | Pulls Site Link info incl. Schedule                                         |
