@@ -84,7 +84,7 @@ function Get-adLogonEvents {
 		[switch] $IncludeSuccess = $false,
 		[switch] $IncludeLogoff = $false,
 		[Parameter(Mandatory = $false)]
-		[string] $PDCEmulator = ((Get-adFSMORoleOwner).PDCEmulator.Name)
+		[string] $PDCEmulator = ((Get-adFSMORoleOwner | Where-Object Domain -eq $env:USERDNSDOMAIN).PDCEmulator.Name)
 	)
 	if (-not (Test-IsAdmin)) {
 		Write-Status -Message 'You must run this as Admin to query the security log' -Level 0 -Type 'Error'
