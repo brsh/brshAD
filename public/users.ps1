@@ -84,7 +84,7 @@ function Get-adLogonEvents {
 		[switch] $IncludeSuccess = $false,
 		[switch] $IncludeLogoff = $false,
 		[Parameter(Mandatory = $false)]
-		[string] $PDCEmulator = ((Get-adFSMORoleOwner | Where-Object Domain -eq $env:USERDNSDOMAIN).PDCEmulator.Name)
+		[string] $PDCEmulator = ((Get-adFSMORoleOwner | Where-Object Domain -EQ $env:USERDNSDOMAIN).PDCEmulator.Name)
 	)
 	if (-not (Test-IsAdmin)) {
 		Write-Status -Message 'You must run this as Admin to query the security log' -Level 0 -Type 'Error'
@@ -92,12 +92,12 @@ function Get-adLogonEvents {
 	}
 
 	if ($PSCmdlet.ParameterSetName -eq "Minutes") {
-		$TheDate = (get-date (get-date).AddMinutes(-$Minutes).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
+		$TheDate = (Get-Date (Get-Date).AddMinutes(-$Minutes).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
 	} elseif ($PSCmdlet.ParameterSetName -eq "Hours") {
-		$TheDate = (get-date (get-date).AddHours(-$Hours).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
+		$TheDate = (Get-Date (Get-Date).AddHours(-$Hours).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
 		#$Milliseconds = (New-TimeSpan -Hours $Hours).TotalMilliseconds
 	} else {
-		$TheDate = (get-date (get-date).AddDays(-$Days).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
+		$TheDate = (Get-Date (Get-Date).AddDays(-$Days).ToUniversalTime() -UFormat '%Y-%m-%dT%H:%M:%S.000Z')
 	}
 	[string] $FilterSet = 'Logon Failures'
 
@@ -141,23 +141,34 @@ $(if ($UserName.Trim().Length -gt 0) { "and EventData[Data[@Name='TargetUserName
 				'4740' { 'Lockout', 'Locked' }
 				'4779' { 'Disconnect', 'n/a' }
 			}
+			<#
+			1102: audit log cleared
+			4728: Successful logon. A member was added to a security-enabled global group.
+			4732: A member was added to a security-enabled local group
+			4735: A security-enabled local group was changed
+			4737: A security-enabled global group was changed
+			4755: A security-enabled universal group was changed
+			4756: A member was added to a security-enabled universal group
+			4771: Kerberos pre-authentication failed - see https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4771
+			Usable IP filter: (?:(?:1\d\d|2[0-5][0-5]|2[0-4]\d|0?[1-9]\d|0?0?\d)\.){3}(?:1\d\d|2[0-5][0-5]|2[0-4]\d|0?[1-9]\d|0?0?\d)
+#>
 			$b = [xml] $Event.ToXML()
-			[string] $newUserName = ($b.Event.EventData.Data | where Name -eq 'TargetUserName' ).'#text'
-			[string] $LogonType = ($b.Event.EventData.Data | where Name -eq 'LogonType' ).'#text'
+			[string] $newUserName = ($b.Event.EventData.Data | Where-Object Name -EQ 'TargetUserName' ).'#text'
+			[string] $LogonType = ($b.Event.EventData.Data | Where-Object Name -EQ 'LogonType' ).'#text'
 			[string] $Domain = if ($Event.ID -eq '4740') {
 				''
 			} else {
-				($b.Event.EventData.Data | where Name -eq 'TargetDomainName' ).'#text'
+				($b.Event.EventData.Data | Where-Object Name -EQ 'TargetDomainName' ).'#text'
 			}
 			[string] $WorkstationName = if ($Event.ID -eq '4740') {
-				($b.Event.EventData.Data | where Name -eq 'TargetDomainName' ).'#text'
+				($b.Event.EventData.Data | Where-Object Name -EQ 'TargetDomainName' ).'#text'
 			} else {
-				($b.Event.EventData.Data | where Name -eq 'WorkstationName' ).'#text'
+				($b.Event.EventData.Data | Where-Object Name -EQ 'WorkstationName' ).'#text'
 			}
-			[string] $IpAddress = ($b.Event.EventData.Data | where Name -eq 'IpAddress' ).'#text'
-			[string] $StatusCode = ($b.Event.EventData.Data | where Name -eq 'Status' ).'#text'
-			[string] $SubStatusCode = ($b.Event.EventData.Data | where Name -eq 'SubStatus' ).'#text'
-			[string] $AuthPackage = ($b.Event.EventData.Data | Where-Object Name -eq 'AuthenticationPackageName').'#text'
+			[string] $IpAddress = ($b.Event.EventData.Data | Where-Object Name -EQ 'IpAddress' ).'#text'
+			[string] $StatusCode = ($b.Event.EventData.Data | Where-Object Name -EQ 'Status' ).'#text'
+			[string] $SubStatusCode = ($b.Event.EventData.Data | Where-Object Name -EQ 'SubStatus' ).'#text'
+			[string] $AuthPackage = ($b.Event.EventData.Data | Where-Object Name -EQ 'AuthenticationPackageName').'#text'
 
 
 			[string] $LogonTypeText = switch ($LogonType) {
@@ -176,7 +187,7 @@ $(if ($UserName.Trim().Length -gt 0) { "and EventData[Data[@Name='TargetUserName
 			[string] $SourceWorkstation = if (($WorkstationName.Trim().Length -eq 0) -or ($WorkstationName.Trim() -eq '-')) {
 				if ($IpAddress.Trim().Length -gt 0) {
 					try {
-						[string] $fqdn = (Resolve-DnsName -type ptr -name $IpAddress -DnsOnly -ErrorAction Stop).NameHost
+						[string] $fqdn = (Resolve-DnsName -Type ptr -Name $IpAddress -DnsOnly -ErrorAction Stop).NameHost
 						$fqdn.Substring(0, $fqdn.Indexof('.'))
 					} catch {
 						$IpAddress.Trim()
@@ -428,6 +439,13 @@ function Get-adLogonFailureCodes {
 			Code        = '0xC0000234'
 			Text        = 'STATUS_ACCOUNT_LOCKED_OUT'
 			Explanation = 'The user account has been automatically locked because too many invalid logon attempts or password change attempts have been requested. Note: this shows as a main Status - not a SubStatus code'
+		}
+
+		[PSCustomObject] @{
+			PSTypeName  = 'brshAD.LogonFailureCode'
+			Code        = '0XC00002EE'
+			Text        = 'STATUS_UNFINISHED_CONTEXT_DELETED'
+			Explanation = 'A security context was deleted before the context was completed. This is considered a logon failure.'
 		}
 
 		[PSCustomObject] @{
