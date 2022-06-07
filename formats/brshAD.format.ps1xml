@@ -606,5 +606,177 @@
 			</ListControl>
 		</View>
 
+		<View>
+			<Name>brshAD.SECInfo</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.SECInfo</TypeName>
+			</ViewSelectedBy>
+			<ListControl>
+				<ListEntries>
+					<ListEntry>
+						<ListItems>
+							<ListItem>
+								<PropertyName>Name</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>UserName</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>IsInAdminGroup</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>LinuxUser</PropertyName>
+							</ListItem>
+							<ListItem>
+								<PropertyName>AccountEnabled</PropertyName>
+							</ListItem>
+						</ListItems>
+					</ListEntry>
+				</ListEntries>
+			</ListControl>
+		</View>
+
+		<View>
+			<Name>brshAD.SECUserInfo</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.SECUserInfo</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>Name</Label>
+						<Width>35</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>UserName</Label>
+						<Width>30</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>IsInAdminGroup</Label>
+						<Width>15</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>AccountEnabled</Label>
+						<Width>15</Width>
+					</TableColumnHeader>
+				</TableHeaders>
+
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>Name</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										if ($_.IsInAdminGroup) { $color = $Red } else { $color = $Green }
+									}
+										"$Color{0}$End" -f $_.UserName
+								</ScriptBlock>
+
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										if ($_.IsInAdminGroup) { $color = $Red } else { $color = $Green }
+									}
+										"$Color{0}$End" -f $_.IsInAdminGroup
+								</ScriptBlock>
+
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										if ($_.AccountEnabled) { $color = $Yellow } else { $color = $Green }
+									}
+										"$Color{0}$End" -f $_.AccountEnabled
+								</ScriptBlock>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+		<View>
+			<Name>brshAD.SECGroupInfo</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.SECGroupInfo</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>PSComputerName</Label>
+						<Width>16</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>ObjectClass</Label>
+						<Width>12</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>Name</Label>
+						<Width>65</Width>
+					</TableColumnHeader>
+				</TableHeaders>
+
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>PSComputerName</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<ScriptBlock>
+									$Escape = "$([char]27)"
+									$Yellow = "$Escape[1;33m"
+									$Green = "$Escape[0;32m"
+									$Red = "$Escape[0;91m"
+									$Off = "$Escape[0m"
+									$color = ''
+									$End = ''
+									if ($Host.UI.SupportsVirtualTerminal) {
+										$End = $Off
+										$color = $Green
+										if ($_.ObjectClass -match 'Error') { $color = $Red }
+										if ($_.ObjectClass -match 'User') { $color = $Yellow }
+									}
+										"$Color{0}$End" -f $_.ObjectClass
+								</ScriptBlock>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>Name</PropertyName>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+
 	</ViewDefinitions>
 </Configuration>
