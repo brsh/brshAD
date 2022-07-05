@@ -778,5 +778,57 @@
 		</View>
 
 
+				<View>
+			<Name>brshAD.Computer</Name>
+			<ViewSelectedBy>
+				<TypeName>brshAD.Computer</TypeName>
+			</ViewSelectedBy>
+			<TableControl>
+				<TableHeaders>
+					<TableColumnHeader>
+						<Label>Name</Label>
+						<Width>18</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>LastLogon</Label>
+						<Width>23</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>WhenCreated</Label>
+						<Width>23</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>OperatingSystem</Label>
+						<Width>37</Width>
+					</TableColumnHeader>
+					<TableColumnHeader>
+						<Label>DNSHostName</Label>
+					</TableColumnHeader>
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+							<TableColumnItem>
+								<PropertyName>Name</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>LastLogon</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>WhenCreated</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>OperatingSystem</PropertyName>
+							</TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>DNSHostName</PropertyName>
+							</TableColumnItem>
+						</TableColumnItems>
+					</TableRowEntry>
+				</TableRowEntries>
+			</TableControl>
+		</View>
+
+
 	</ViewDefinitions>
 </Configuration>

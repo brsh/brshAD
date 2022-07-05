@@ -18,13 +18,16 @@ function Get-adLiveComputer {
 	a quick WMI (cough CIM cough) ping to see if the system is actually online.
 
 	The final list, then, is based on age in AD plus a ping response... with the
-	expectation that the list is pretty current.
+	expectation that this list is pretty current.
 
 	.PARAMETER Domain
 	The Domain to query - expects an FQDN
 
 	.PARAMETER WithinDays
 	How many days since AD "saw" this machine (defaults to the Domain's msDS-LogonTimeSyncInterval)
+
+	.PARAMETER TimeOutMS
+	Timeout for computer ping response in milliseconds (default is 1000ms)
 
 	.PARAMETER Credential
 	A cred to access the appropriate domain
@@ -55,17 +58,14 @@ function Get-adLiveComputer {
 				}
 			})]
 		[string] $Domain = $env:USERDNSDOMAIN,
-		[int] $WithinDays,
+		[Parameter(HelpMessage = "How many days since AD 'saw' this machine - must be greater than 0")]
+		[ValidateScript({ if ($_ -ge 0) { $true } else { throw 'WithinDays must be a positive number.' } })]
+		[int] $WithinDays = 0,
+		[Parameter(HelpMessage = "Timeout for computer ping response in milliseconds - must be greater than 0")]
+		[ValidateScript({ if ($_ -ge 0) { $true } else { throw 'TimeOutMS must be a positive number.' } })]
+		[int] $TimeOutMS = 1000,
 		[pscredential] $Credential
 	)
-
-	# try {
-	# 	Import-Module -Name ActiveDirectory -ErrorAction Stop -Verbose:$false
-	# } catch {
-	# 	Write-Status -Message 'This function requires the ActiveDirectory PowerShell module' -level 0 -Type 'Info'
-	# 	Write-Status -Message '... which was not found' -level 1 -Type 'Error' -e $_
-	# 	Throw 'ActiveDirectory module not found.'
-	# }
 
 	[bool] $Verbose = $false
 	if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
@@ -105,19 +105,10 @@ function Get-adLiveComputer {
 		$WithinDays = Get-adDomainReplicationAge @AgeSplat
 	}
 
-	$Field = @{
-		Name = 'LastLogon'
-		expr = { ([datetime]::FromFileTime($_.lastLogonTimeStamp)) }
-	}
-	$DNSHostName = @{
-		Name = 'DNSHostName'
-		expr = { ($_.DNSHostName).ToLower() }
-	}
 	$Time = (Get-Date).AddDays( - ($WithinDays))
 	$Filter = { (Enabled -eq 'true') -and (LastLogonTimestamp -gt $time) -and (servicePrincipalName -NotLike "MSClusterVirtualServer/*") -and (OperatingSystem -Like "Windows*") }
-	$WhereWindows = { $_.OperatingSystem -match 'Windows' }
 	$WherePing = {
-		$Response = Get-adQuickPing -Name ($_.DNSHostName) -Verbose:$Verbose
+		$Response = Get-adQuickPing -Name ($_.DNSHostName) -Verbose:$Verbose -TimeOutMS $TimeOutMS
 		if (($Response.Online) -and ($Response.DNSName -match $Response.Address )) {
 			$true
 		} else {
@@ -127,7 +118,7 @@ function Get-adLiveComputer {
 
 	$Splat = @{
 		Filter     = $Filter
-		Properties = 'Name', 'OperatingSystem', 'LastLogonTimeStamp', 'Enabled', 'DNSHostName', 'servicePrincipalName'
+		Properties = 'Name', 'OperatingSystem', 'LastLogonTimeStamp', 'Enabled', 'DNSHostName', 'servicePrincipalName', 'whenCreated', 'operatingSystemVersion'
 		Server     = $Server
 	}
 
@@ -139,8 +130,22 @@ function Get-adLiveComputer {
 		Write-Status -Message "Pulling clients from $Domain" -Level 0 -Type 'Info'
 	}
 
-	(Get-ADComputer @Splat).Where($WherePing) |
-		Select-Object Name, OperatingSystem, $Field, $DNSHostName | Sort-Object Name -Unique
+	(Get-ADComputer @Splat).Where($WherePing) | Sort-Object Name -Unique | ForEach-Object {
+		[PSCustomObject] [ordered] @{
+			PSTypeName              = 'brshAD.Computer'
+			Name                    = $_.Name
+			OperatingSystem         = $_.OperatingSystem
+			LastLogon               = ([datetime]::FromFileTime($_.lastLogonTimeStamp))
+			WhenCreated             = $_.WhenCreated
+			DNSHostName             = ($_.DNSHostName).ToLower()
+			DistinguishedName       = $_.DistinguishedName
+			Enabled                 = $_.Enabled
+			ObjectClass             = $_.ObjectClass
+			ServicePrincipalName    = $_.servicePrincipalName
+			OperatingSystemVersion  = $_.operatingSystemVersion
+			LastLoginReplicationAge = $WithinDays
+		}
+	}
 }
 
 function Get-adDomainReplicationAge {
