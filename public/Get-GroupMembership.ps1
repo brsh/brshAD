@@ -103,11 +103,12 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
         [ValidateScript({
                 If (Test-Path -Path $_.ToString() -PathType Container) {
                     $true
-                } else {
+                }
+                else {
                     Throw "$_ is not a valid destination folder. Enter in 'c:\directory' format"
                 }
             })]
-        [string] $folder = $(if ($PSCommandPath) { (Split-Path -Parent $PSCommandPath) + '\' } else { '.\' } )
+        [string] $Folder = (Resolve-Path $PWD).ProviderPath
     )
 
     Begin {
@@ -116,13 +117,17 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
         [int]$Script:TotalAllUsers = 0
         $Group = Get-TitleCase -String $Group
 
-        $folder = (Resolve-Path $folder).ProviderPath
-        if (-not $folder.EndsWith("\")) { $folder += "\" }
+        if (-not $PSBoundParameters.ContainsKey("Folder")) {
+            $Folder = (Resolve-Path $Folder).ProviderPath
+        }
+        "If needed, Output Folder is: {0}" -f $Folder | write-verbose
+        if (-not $Folder.EndsWith("\")) { $Folder += "\" }
 
         if (Get-Module -ListAvailable ActiveDirectory) {
             "Importing the ActiveDirectory Module" | Write-Verbose
             Import-Module ActiveDirectory -Verbose:$false
-        } else {
+        }
+        else {
             Write-Host "Fatal Error: ActiveDirectory Module NOT FOUND" -ForegroundColor Red
             exit
         }
@@ -152,7 +157,8 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                     $Activity = "Getting members of {0} on {1}" -f $group, $WhatIsTheDomain
                     Try {
                         Write-Progress -Id ($level + 1) -Activity $Activity -PercentComplete (($counter / $TotalMembers ) * 100) -Status ("Found {0}" -f $_.SamAccountName)
-                    } Catch {
+                    }
+                    Catch {
                         "Non-Fatal Error with ProgressBar. Group/User: {0}" -f $group | Write-Verbose
                     }
 
@@ -180,9 +186,11 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                         'user' {
                             try {
                                 $UserIsEnabled = (Get-ADUser -Identity $SamAN -ErrorAction Stop).Enabled
-                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                            }
+                            catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
                                 'Deleted/User'
-                            } catch {
+                            }
+                            catch {
                                 'Error/User'
                             }
                             break
@@ -190,9 +198,11 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                         'computer' {
                             try {
                                 $UserIsEnabled = (Get-ADComputer -Identity $SamAN -ErrorAction Stop).Enabled
-                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                            }
+                            catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
                                 'Deleted/Computer'
-                            } catch {
+                            }
+                            catch {
                                 'Error/Computer'
                             }
                             break
@@ -200,9 +210,11 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                         'msds-managedserviceaccount' {
                             try {
                                 $UserIsEnabled = (Get-ADServiceAccount -Identity $SamAN -ErrorAction Stop).Enabled
-                            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                            }
+                            catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
                                 'Deleted/Computer'
-                            } catch {
+                            }
+                            catch {
                                 'Error/Computer'
                             }
                             break
@@ -225,7 +237,8 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
 
             try {
                 $ADSIGroup = [ADSI]"WinNT://$computername/$group,group"
-            } catch {
+            }
+            catch {
                 $host.ui.WriteErrorLine(("Group {0} on Computer {1} not found" -f $group, $computername))
                 break
             }
@@ -253,15 +266,18 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                     if (($Path -contains $computername) -or ($path -contains "NT AUTHORITY")) {
                         $Type = 'Local'
                         $tempDN = $AdsPath
-                    } Else {
+                    }
+                    Else {
                         $Type = 'Domain'
                         try {
                             if ($isGroup -eq "User") {
                                 $tempDN = (Get-ADUser $Name).DistinguishedName
-                            } else {
+                            }
+                            else {
                                 $tempDN = (Get-ADGroup $Name).DistinguishedName
                             }
-                        } catch { $tempDN = "Unknown" }
+                        }
+                        catch { $tempDN = "Unknown" }
                     }
 
                     if ($isGroup.Contains("Group")) {
@@ -269,22 +285,27 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                         if ($Type -eq 'Local') {
                             # Enumerate members of local group.
                             Get-LocalGroupMembers $Name $level -System $System
-                        } else {
+                        }
+                        else {
                             # Enumerate members of domain group.
                             $HomeDomain = (Get-ADDomain (($tempDN.Split(",") | ForEach-Object { if ($_ -like "DC=*") { $_ } }) -join ",")).NetBiosName
                             Get-DomainGroupMembers -group $Name -level $level -parent $ADSIGroup.Name -System $System -HomeDomain $HomeDomain
                         }
-                    } else {
+                    }
+                    else {
                         try {
                             $UserFlags = ([ADSI]$AdsPath).InvokeGet("UserFlags")
                             $enabled = -not [boolean]($UserFlags -band "0x" + "512".PadLeft($UserFlags.ToString().Length, "0"))
-                        } Catch { $enabled = "Unknown" }
+                        }
+                        Catch { $enabled = "Unknown" }
                         try {
                             $FullName = ([ADSI]$_).InvokeGet("FullName")
-                        } Catch { $FullName = "" }
+                        }
+                        Catch { $FullName = "" }
                         TheObject -sSam $Name -sName $FullName -sScope $path[-2] -level $level -sUserOrGroup "User" -sEnabled $enabled -sParent $group -sDN $tempDN -sSystem $System
                     }
-                } Catch {
+                }
+                Catch {
                     $host.ui.WriteWarningLine(("GLGM {0}" -f $_.Exception.Message))
                 }
             }
@@ -335,6 +356,7 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
             $graphics.DrawString($Text, $font, $brushFg, 10, 10)
             $graphics.Dispose()
             "Writing picture..." | Write-Verbose
+            "  Output: {0}" -f $script:filename | Write-Verbose
             $bmp.Save($script:filename)
         }
 
@@ -391,7 +413,8 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
 
             if ($raw) {
                 $InfoStack
-            } else {
+            }
+            else {
                 $Script:AllResults += $InfoStack
             }
         }
@@ -407,7 +430,8 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
             $OutText += $footer
             if ($picture) {
                 DrawIt $OutText
-            } else {
+            }
+            else {
                 $OutText
             }
         }
@@ -446,15 +470,17 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
                 $Activity = "Getting members of {0} on {1}" -f $group, $ComputerName
                 Write-Progress -Id 0 -Activity $Activity -PercentComplete (10) -Status "Starting Group Enumeration Subprocess..."
                 "Requested group members of {0} on computer {1}" -f $group, $computername | Write-Verbose
-                if ($Picture) { $filename = GenFileName -groupname ("{0}-{1}" -f $computername, $group) }
+                if ($Picture) { $script:filename = GenFileName -groupname ("{0}-{1}" -f $computername, $group) }
                 Try {
                     if ([ADSI]::Exists("WinNT://$computerName/$group,group")) {
                         Get-LocalGroupMembers $group $computername -Parent "{self}" -System $ComputerName
-                    } else {
+                    }
+                    else {
                         $host.ui.WriteErrorLine(("Group {0} on Computer {1} not found" -f $group, $computername))
                         Write-Progress -Id 0 -Activity ("Complete: members of {0} on {1}" -f $group, $ComputerName) -PercentComplete (100) -Status "Could not find group."
                     }
-                } catch {
+                }
+                catch {
                     $host.ui.WriteErrorLine(("Group {0} on Computer {1} not found" -f $group, $computername))
                     Write-Progress -Id 0 -Activity ("Complete: members of {0} on {1}" -f $group, $ComputerName) -PercentComplete (100) -Status "Could not find group."
                     break
@@ -468,17 +494,20 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
 
                 $Script:AllResults = $()
             }
-        } else {
+        }
+        else {
             try {
                 if ($Domain) {
                     "Testing if domain {0} exists" -f $domain | Write-Verbose
                     $Domain = (Get-ADDomain -Identity $Domain).NetBiosName
-                } else {
+                }
+                else {
                     "Testing for local domain" | Write-Verbose
                     $Domain = (Get-ADDomain).NetBiosName
                 }
                 "Found domain {0}" -f $domain | Write-Verbose
-            } catch { $Domain = "Name not found" }
+            }
+            catch { $Domain = "Name not found" }
 
             $temp = Get-ADGroup -Filter { objectClass -eq "Group" -and (SamAccountName -eq $group -or Name -eq $group) } -Server $domain
             "Requesting group members of {0} on {1} domain" -f $group, $Domain | Write-Verbose
@@ -487,9 +516,10 @@ you can output numerous fields as a nice, native PowerShell object - for piping 
 
             if ($temp) {
                 $header = GenHeader -Group $group -ComputerName $Domain
-                if ($Picture) { $filename = GenFileName -groupname ("{0}-{1}" -f $Domain, $group) }
+                if ($Picture) { $script:filename = GenFileName -groupname ("{0}-{1}" -f $Domain, $group) }
                 Get-DomainGroupMembers $temp.SamAccountName -parent "{self}" -System $Domain -HomeDomain $Domain
-            } else {
+            }
+            else {
                 $host.ui.WriteErrorLine(("Group {0} in Domain {1} not found" -f $group, $Domain))
                 break
             }
